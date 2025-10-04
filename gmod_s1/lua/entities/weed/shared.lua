@@ -9,6 +9,12 @@ ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
+ENT.SellPrice = 100
+if SERVER then
+    GAMEMODE.SellPrices = GAMEMODE.SellPrices or {}
+    GAMEMODE.SellPrices["weed"] = ENT.SellPrice
+end
+
 if SERVER then
 	-- called when you spawn it
 	function ENT:Initialize()
@@ -58,15 +64,8 @@ if CLIENT then
 
 		-- draw the main text
 		cam.Start3D2D(pos, ang, 0.2)
-			draw.SimpleTextOutlined(
-				"Weed",
-				"DermaLarge",
-				0, 0,
-				Color(125, 218, 88),
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER,
-				1,
-				Color(0, 0, 0, 255)
-			)
+			draw.SimpleTextOutlined("Weed", "DermaLarge", 0, -20, Color(112, 130, 23, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+            draw.SimpleTextOutlined("Price: $" .. self.SellPrice, "DermaDefault", 0, 0, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 		cam.End3D2D()
 	end
 end

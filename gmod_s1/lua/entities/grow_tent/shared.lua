@@ -24,13 +24,13 @@ if SERVER then
         local phys = self:GetPhysicsObject()
         if IsValid(phys) then
             phys:Wake()
-			phys:SetMass(25)
+			phys:SetMass(200)
         end
 		
 		-- custom stats
         self:SetNWBool("Growing", false)
         self:SetNWInt("Growth", 0)
-        self:SetNWInt("Water", 100)
+        self:SetNWInt("Water", 0)
 		self:SetNWInt("ShearCount", 0)
 	end
 	
@@ -64,7 +64,7 @@ if SERVER then
                     local product = ents.Create("weed")
                     if IsValid(product) then
                         local ang = self:GetAngles()
-                        product:SetPos(self:GetPos() + (ang:Up() * 50) + (ang:Forward() * 30))
+                        product:SetPos(self:GetPos() + (ang:Up() * 50) + (ang:Forward() * 40))
                         product:Spawn()
                     end
                 end
@@ -149,7 +149,7 @@ if CLIENT then
 		-- add the text
         cam.Start3D2D(pos, ang, 0.2)
             if growing then
-                draw.SimpleTextOutlined("Plant Growing...", "DermaLarge", 0, -40, Color(0,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+                draw.SimpleTextOutlined("Plant Growing...", "DermaLarge", 0, -20, Color(0,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
                 draw.SimpleTextOutlined("Growth: " .. growth .. "%", "DermaDefaultBold", 0, 0, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
                 draw.SimpleTextOutlined("Water: " .. water .. "%", "DermaDefaultBold", 0, 20, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
             else
