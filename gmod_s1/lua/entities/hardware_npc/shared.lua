@@ -12,7 +12,7 @@ ENT.AutomaticFrameAdvance = true
 local categories = {
     {name = "Agriculture", items = {
         {name = "Grow Tent", price = 100, class = "grow_tent"},
-        {name = "Soil", price = 10, class = "weed"},
+        {name = "Soil Bag", price = 10, class = "soil_bag"},
     }},
     {name = "Tools", items = {
         {name = "Plant Trimmers", price = 10, class = "weapon_planttrimmers"},

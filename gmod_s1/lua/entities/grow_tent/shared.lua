@@ -34,6 +34,7 @@ if SERVER then
         self:SetNWInt("Growth", 0)
         self:SetNWInt("Water", 0)
 		self:SetNWInt("ShearCount", 0)
+		self:SetNWInt("SoilUsesLeft", 0)
 	end
 	
 	-- called when a player uses it
@@ -68,6 +69,7 @@ if SERVER then
                     self:SetNWBool("Growing", false)
                     self:SetNWInt("Growth", 0)
                     self:SetNWInt("ShearCount", 0)
+                    self:SetNWInt("SoilUsesLeft", self:GetNWInt("SoilUsesLeft") - 1)
 
                     local product = ents.Create("weed")
                     if IsValid(product) then
@@ -80,8 +82,12 @@ if SERVER then
             end
 		end
 	
-        -- Otherwise, start growing
+        -- otherwise, start growing
         if not self:GetNWBool("Growing") then
+			-- check if there is soil left
+			if self:GetNWInt("SoilUsesLeft") <= 0 then return end
+			
+			-- if we passed every check, start growing
             self:SetNWBool("Growing", true)
         end
     end
@@ -117,8 +123,12 @@ if CLIENT then
         end
 		
 		self.PotModel = ClientsideModel("models/weed_pot/weed_pot.mdl")
+		
 		self.DirtModel = ClientsideModel("models/hunter/tubes/circle2x2.mdl")
 		self.DirtModel:SetMaterial("models/props_pipes/GutterMetal01a")
+		if IsValid(self.DirtModel) then
+            self.DirtModel:SetNoDraw(true)
+        end
     end
 	
 	-- delete some clientside models
@@ -153,22 +163,29 @@ if CLIENT then
         local water = self:GetNWInt("Water", 0)
         local growing = self:GetNWBool("Growing", false)
 		local shears = self:GetNWInt("ShearCount", 0)
+		local soil = self:GetNWInt("SoilUsesLeft", 0)
 		
 		-- add the text
         cam.Start3D2D(pos, ang, 0.2)
-            if growing then
-                draw.SimpleTextOutlined("Plant Growing...", "DermaLarge", 0, -20, Color(0,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-                draw.SimpleTextOutlined("Growth: " .. growth .. "%", "DermaDefaultBold", 0, 0, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-                draw.SimpleTextOutlined("Water: " .. water .. "%", "DermaDefaultBold", 0, 20, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-            else
-                if growth >= 100 then
-                    draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-					draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-                else
-                    draw.SimpleTextOutlined("Press E to Start Growing", "DermaLarge", 0, 0, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-                end
-            end
-        cam.End3D2D()
+		if growing then
+			draw.SimpleTextOutlined("Plant Growing...", "DermaLarge", 0, -40, Color(0,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined("Growth: " .. growth .. "%", "DermaDefaultBold", 0, -20, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined("Water: " .. water .. "%", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 20, Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+		else
+			if growth >= 100 then
+				draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			else
+				if soil > 0 then
+					draw.SimpleTextOutlined("Press E to Start Growing", "DermaLarge", 0, -20, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				else
+					draw.SimpleTextOutlined("Needs Soil!", "DermaLarge", 0, -20, Color(200,50,50), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				end
+				draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 10, Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			end
+		end
+	cam.End3D2D()
 		
 		-- draw a fun little plant model
         if IsValid(self.PlantModel) and growth > 0 then
@@ -197,7 +214,7 @@ if CLIENT then
         end
 		
 		-- draw a dirt model
-        if IsValid(self.DirtModel) then
+        if IsValid(self.DirtModel) and soil >= 1 then
             local dirtPos = self:GetPos() + (self:GetUp() * 25) + (self:GetForward() * 2.5) + (self:GetRight() * 1.1)
             local dirtAng = self:GetAngles()
 			
