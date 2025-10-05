@@ -2,7 +2,7 @@ AddCSLuaFile()
 
 ENT.Base = "base_ai"
 ENT.Type = "ai"
-ENT.PrintName = "General - Buyer NPC"
+ENT.PrintName = "NPC Buyer"
 ENT.Author = "Milkwater"
 ENT.Category = "DarkRP"
 ENT.Spawnable = true

@@ -9,7 +9,9 @@ ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
-ENT.SellPrice = 100
+ENT.Model = "models/weed/weed.mdl"
+
+ENT.SellPrice = 38
 if SERVER then
     GAMEMODE.SellPrices = GAMEMODE.SellPrices or {}
     GAMEMODE.SellPrices["weed"] = ENT.SellPrice
@@ -19,7 +21,7 @@ if SERVER then
 	-- called when you spawn it
 	function ENT:Initialize()
 		-- initialize model
-		self:SetModel("models/weed/weed.mdl")
+		self:SetModel(self.Model)
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)

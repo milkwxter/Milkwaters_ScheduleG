@@ -9,11 +9,13 @@ ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
+ENT.Model = "models/grow_tent/grow_tent.mdl"
+
 if SERVER then
 	-- called when you spawn it
 	function ENT:Initialize()
 		-- initialize model
-		self:SetModel("models/grow_tent/grow_tent.mdl")
+		self:SetModel(self.Model)
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
@@ -41,6 +43,12 @@ if SERVER then
 		
 		-- fully grown? time to shear
         if self:GetNWInt("Growth") >= 100 then
+			-- only allow when trimmers are equipped
+			local wep = ply:GetActiveWeapon()
+			if not IsValid(wep) or wep:GetClass() ~= "weapon_planttrimmers" then
+				DarkRP.notify(ply, 1, 4, "You need plant trimmers equipped to shear this plant!")
+				return
+			end
             local shears = self:GetNWInt("ShearCount", 0)
 
             -- not yet fully sheared
@@ -155,7 +163,7 @@ if CLIENT then
             else
                 if growth >= 100 then
                     draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-                draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+					draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
                 else
                     draw.SimpleTextOutlined("Press E to Start Growing", "DermaLarge", 0, 0, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
                 end
@@ -204,7 +212,7 @@ if CLIENT then
             self.DirtModel:DrawModel()
         end
 		
-		-- Purple grow light effect
+		-- purple grow light effect
         if growing then
             local dlight = DynamicLight(self:EntIndex())
             if dlight then

@@ -2,9 +2,16 @@ AddCSLuaFile()
 
 SWEP.PrintName = "Watering Can"
 SWEP.Author = "Milkwater"
-SWEP.Instructions = "Left click to shoot water drops"
+SWEP.Instructions = "Left click to water plants!"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
+SWEP.IconOverride = "weapons/weapon_wateringcan.png"
+SWEP.Category = "DarkRP (Schedule 1)"
+
+if CLIENT then
+    SWEP.WepSelectIcon = surface.GetTextureID("vgui/entities/weapon_wateringcan")
+	SWEP.DrawWeaponInfoBox = true
+end
 
 SWEP.Primary.ClipSize = -1
 SWEP.Primary.DefaultClip = -1
@@ -18,7 +25,7 @@ SWEP.Secondary.Ammo = "none"
 
 SWEP.UseHands = false
 SWEP.ViewModel = "models/weapons/c_arms.mdl"
-SWEP.WorldModel = "models/props_interiors/pot01a.mdl"
+SWEP.WorldModel = "models/watering_can/watering_can.mdl"
 
 function SWEP:PrimaryAttack()
     if CLIENT then return end
@@ -39,7 +46,7 @@ function SWEP:PrimaryAttack()
 
     local phys = ent:GetPhysicsObject()
     if IsValid(phys) then
-        phys:SetVelocity(ang * 400) -- adjust speed here
+        phys:SetVelocity(ang * 400)
     end
 
     self:EmitSound("ambient/water/water_spray1.wav")
@@ -48,17 +55,12 @@ end
 
 if CLIENT then
     function SWEP:PostDrawViewModel(vm, wep, ply)
-        -- Don’t draw the default viewmodel
-        render.SuppressEngineLighting(true)
-
-        -- Create a clientside model of your pot
         if not IsValid(self.VMModel) then
-            self.VMModel = ClientsideModel("models/props_interiors/pot01a.mdl")
+            self.VMModel = ClientsideModel("models/watering_can/watering_can.mdl")
             self.VMModel:SetNoDraw(true)
         end
-
-        -- Position it relative to the player’s eye
-        local pos = EyePos() + EyeAngles():Forward() * 30 + EyeAngles():Right() * 15 + EyeAngles():Up() * -5
+		
+        local pos = EyePos() + (EyeAngles():Forward() * 20) + (EyeAngles():Right() * 10) + (EyeAngles():Up() * -15)
         local ang = EyeAngles()
         ang:RotateAroundAxis(ang:Right(), 0)
         ang:RotateAroundAxis(ang:Up(), 0)
@@ -66,8 +68,6 @@ if CLIENT then
         self.VMModel:SetPos(pos)
         self.VMModel:SetAngles(ang)
         self.VMModel:DrawModel()
-
-        render.SuppressEngineLighting(false)
     end
 
     function SWEP:OnRemove()

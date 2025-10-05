@@ -23,9 +23,8 @@ function ENT:PhysicsCollide(data, phys)
     local hitEnt = data.HitEntity
 
     if IsValid(hitEnt) and hitEnt:GetClass() == "grow_tent" then
-        -- refill water by 10
         local current = hitEnt:GetNWInt("Water", 0)
-        hitEnt:SetNWInt("Water", math.min(current + 10, 100))
+        hitEnt:SetNWInt("Water", math.min(current + 20, 100))
         hitEnt:EmitSound("ambient/water/water_splash1.wav")
     end
 
