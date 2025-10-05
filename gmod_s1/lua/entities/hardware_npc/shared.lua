@@ -13,6 +13,8 @@ local categories = {
     {name = "Agriculture", items = {
         {name = "Grow Tent", price = 100, class = "grow_tent"},
         {name = "Soil Bag", price = 10, class = "soil_bag"},
+        {name = "Long Life Soil Bag", price = 30, class = "soil_bag_long_life"},
+        {name = "Extra Long Life Soil Bag", price = 60, class = "soil_bag_extra_long_life"},
     }},
     {name = "Tools", items = {
         {name = "Plant Trimmers", price = 10, class = "weapon_planttrimmers"},
