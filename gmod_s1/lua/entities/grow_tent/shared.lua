@@ -35,6 +35,7 @@ if SERVER then
         self:SetNWInt("Water", 0)
 		self:SetNWInt("ShearCount", 0)
 		self:SetNWInt("SoilUsesLeft", 0)
+		self:SetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
 	end
 	
 	-- called when a player uses it
@@ -125,7 +126,7 @@ if CLIENT then
 		self.PotModel = ClientsideModel("models/weed_pot/weed_pot.mdl")
 		
 		self.DirtModel = ClientsideModel("models/hunter/tubes/circle2x2.mdl")
-		self.DirtModel:SetMaterial("models/props_pipes/GutterMetal01a")
+		self.DirtModel:SetMaterial("models/props_c17/FurnitureMetal001a")
 		if IsValid(self.DirtModel) then
             self.DirtModel:SetNoDraw(true)
         end
@@ -215,6 +216,9 @@ if CLIENT then
 		
 		-- draw a dirt model
         if IsValid(self.DirtModel) and soil >= 1 then
+			local dirtColorVec = self:GetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
+			local dirtColor = Color(dirtColorVec.x * 255, dirtColorVec.y * 255, dirtColorVec.z * 255)
+	
             local dirtPos = self:GetPos() + (self:GetUp() * 25) + (self:GetForward() * 2.5) + (self:GetRight() * 1.1)
             local dirtAng = self:GetAngles()
 			
@@ -226,7 +230,9 @@ if CLIENT then
 
             self.DirtModel:SetPos(dirtPos)
             self.DirtModel:SetAngles(dirtAng)
-            self.DirtModel:DrawModel()
+			render.SetColorModulation(dirtColor.r/255, dirtColor.g/255, dirtColor.b/255)
+			self.DirtModel:DrawModel()
+			render.SetColorModulation(1, 1, 1)
         end
 		
 		-- purple grow light effect
