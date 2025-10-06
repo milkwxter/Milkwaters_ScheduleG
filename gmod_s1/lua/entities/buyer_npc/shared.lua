@@ -87,14 +87,13 @@ end
 if CLIENT then
     function ENT:Draw()
         self:DrawModel()
+		
         local pos = self:GetPos() + Vector(0, 0, 80)
         local ang = Angle(0, LocalPlayer():EyeAngles().y - 90, 90)
 
         cam.Start3D2D(pos, ang, 0.2)
-        draw.SimpleText("Illegal Buyer NPC", "Trebuchet24", 0, 0, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-        cam.End3D2D()
-		cam.Start3D2D(pos - Vector(0, 0, 5), ang, 0.1)
-        draw.SimpleText("Sell illegal goods here!", "Trebuchet18", 0, 0, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			draw.SimpleTextOutlined("Buyer NPC", "DermaLarge", 0, -20, Color(220, 20, 60), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
+			draw.SimpleTextOutlined("Sell goods here!", "DermaDefault", 0, 0, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
         cam.End3D2D()
     end
 	

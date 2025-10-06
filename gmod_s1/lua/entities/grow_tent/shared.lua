@@ -36,72 +36,77 @@ if SERVER then
 		self:SetNWInt("ShearCount", 0)
 		self:SetNWInt("SoilUsesLeft", 0)
 		self:SetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
+        self:SetNWString("PotType", "")
 	end
 	
 	-- called when a player uses it
 	function ENT:Use(ply)
-        -- make sure the guy using it exists
-        if not IsValid(ply) or not ply:IsPlayer() then return end
+		if not IsValid(ply) or not ply:IsPlayer() then return end
 		
-		-- fully grown? time to shear
-        if self:GetNWInt("Growth") >= 100 then
-			-- only allow when trimmers are equipped
+		-- my vars
+		local growth    = self:GetNWInt("Growth", 0)
+		local shears    = self:GetNWInt("ShearCount", 0)
+		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
+		local isGrowing = self:GetNWBool("Growing", false)
+		
+		-- ready for harvest path
+		if growth >= 100 then
 			local wep = ply:GetActiveWeapon()
 			if not IsValid(wep) or wep:GetClass() ~= "weapon_planttrimmers" then
 				DarkRP.notify(ply, 1, 4, "You need plant trimmers equipped to shear this plant!")
 				return
 			end
-            local shears = self:GetNWInt("ShearCount", 0)
 
-            -- not yet fully sheared
-            if shears < 10 then
-                self:SetNWInt("ShearCount", shears + 1)
+			if shears < 10 then
+				self:SetNWInt("ShearCount", shears + 1)
 
-                -- effects
-                self:EmitSound("physics/wood/wood_strain2.wav", 75, 100)
-                local effect = EffectData()
-				local particleOrigin = self:GetPos() + self:GetUp() * 50
-				particleOrigin = particleOrigin + Vector(0, 0, math.Rand(-20, 20))
-                effect:SetOrigin(particleOrigin)
-                util.Effect("weed_boom", effect, true, true)
+				self:EmitSound("physics/wood/wood_strain2.wav", 75, 100)
+				local effect = EffectData()
+				local particleOrigin = self:GetPos() + self:GetUp() * 50 + Vector(0, 0, math.Rand(-20, 20))
+				effect:SetOrigin(particleOrigin)
+				util.Effect("weed_boom", effect, true, true)
 
-                -- drop the product if that was the last shear
-                if self:GetNWInt("ShearCount") >= 10 then
-                    self:SetNWBool("Growing", false)
-                    self:SetNWInt("Growth", 0)
-                    self:SetNWInt("ShearCount", 0)
-                    self:SetNWInt("SoilUsesLeft", self:GetNWInt("SoilUsesLeft") - 1)
+				if self:GetNWInt("ShearCount") >= 10 then
+					self:SetNWBool("Growing", false)
+					self:SetNWInt("Growth", 0)
+					self:SetNWInt("ShearCount", 0)
+					self:SetNWInt("SoilUsesLeft", soilUses - 1)
 
-                    local product = ents.Create("weed")
-                    if IsValid(product) then
-                        local ang = self:GetAngles()
-                        product:SetPos(self:GetPos() + (ang:Up() * 50) + (ang:Forward() * 40))
-                        product:Spawn()
-                    end
-                end
-                return
-            end
+					local product = ents.Create("weed")
+					if IsValid(product) then
+						local ang = self:GetAngles()
+						product:SetPos(self:GetPos() + ang:Up() * 50 + ang:Forward() * 40)
+						product:Spawn()
+					end
+				end
+			end
+			return
 		end
-	
-        -- otherwise, start growing
-        if not self:GetNWBool("Growing") then
-			-- check if there is soil left
-			if self:GetNWInt("SoilUsesLeft") <= 0 then return end
-			
-			-- if we passed every check, start growing
-            self:SetNWBool("Growing", true)
-        end
-    end
+		
+		-- starting growth path
+		if not isGrowing and soilUses > 0 then
+			self:SetNWBool("Growing", true)
+		end
+	end
 	
 	-- run every tick
     function ENT:Think()
         if self:GetNWBool("Growing") then
             local growth = self:GetNWInt("Growth")
             local water = self:GetNWInt("Water")
+			local potType = self:GetNWString("PotType")
 
+			-- if we are allowed to grow
             if water > 0 and growth < 100 then
-                self:SetNWInt("Water", math.max(water - 1, 0))
+				-- increment growth regardless
                 self:SetNWInt("Growth", math.min(growth + 2, 100))
+				
+				-- decrease water based on pot type
+				if potType == "pot_water_retaining" then
+					self:SetNWInt("Water", math.max(water - 0.5, 0))
+				elseif potType == "pot_plastic" then
+					self:SetNWInt("Water", math.max(water - 1, 0))
+				end
             end
 			
 			-- stop growing once fully grown
@@ -166,10 +171,26 @@ if CLIENT then
 		local shears = self:GetNWInt("ShearCount", 0)
 		local soil = self:GetNWInt("SoilUsesLeft", 0)
 		
+		-- get the pot model
+		local potType = self:GetNWString("PotType")
+		if self.LastPotType ~= potType then
+			self:UpdatePotModel()
+			self.LastPotType = potType
+		end
+		
 		-- add the text
         cam.Start3D2D(pos, ang, 0.2)
+		local headline, headlineColor, headlineY = nil, nil, -20
 		if growing then
-			draw.SimpleTextOutlined("Plant Growing...", "DermaLarge", 0, -40, Color(0,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			if water > 0 then
+				headline, headlineColor, headlineY = "Plant Growing...", Color(0,255,0), -40
+			else
+				headline, headlineColor, headlineY = "Needs Water!", Color(200,50,50), -40
+			end
+
+			draw.SimpleTextOutlined(headline, "DermaLarge", 0, headlineY, headlineColor,
+				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+
 			draw.SimpleTextOutlined("Growth: " .. growth .. "%", "DermaDefaultBold", 0, -20, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			draw.SimpleTextOutlined("Water: " .. water .. "%", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 20, Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
@@ -178,15 +199,22 @@ if CLIENT then
 				draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 				draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			else
-				if soil > 0 then
-					draw.SimpleTextOutlined("Press E to Start Growing", "DermaLarge", 0, -20, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				if soil > 0 and potType ~= "" then
+					headline, headlineColor = "Press E to Start Growing", Color(255,255,255)
+				elseif potType == "" then
+					headline, headlineColor = "Needs a Pot!", Color(200,50,50)
 				else
-					draw.SimpleTextOutlined("Needs Soil!", "DermaLarge", 0, -20, Color(200,50,50), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+					headline, headlineColor = "Needs Soil!", Color(200,50,50)
 				end
-				draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 10, Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+
+				draw.SimpleTextOutlined(headline, "DermaLarge", 0, -20, headlineColor,
+					TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+
+				draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 10,
+					Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			end
 		end
-	cam.End3D2D()
+		cam.End3D2D()
 		
 		-- draw a fun little plant model
         if IsValid(self.PlantModel) and growth > 0 then
@@ -246,8 +274,27 @@ if CLIENT then
                 dlight.brightness = 2
                 dlight.Decay = 500
                 dlight.Size = 250
-                dlight.DieTime = CurTime() + 0.1 -- refresh every frame
+				-- refresh every frame
+                dlight.DieTime = CurTime() + 0.1
             end
         end
+	end
+	
+	-- helper function to switch models for the pot
+	function ENT:UpdatePotModel()
+		local potType = self:GetNWString("PotType")
+
+		-- remove old model if type changed or no pot
+		if IsValid(self.PotModel) then
+			self.PotModel:Remove()
+			self.PotModel = nil
+		end
+
+		if potType ~= "" then
+			self.PotModel = ClientsideModel("models/weed_pot/weed_pot.mdl")
+			
+			-- draw it manually in the draw function
+			self.PotModel:SetNoDraw(true)
+		end
 	end
 end

@@ -30,9 +30,12 @@ function ENT:PhysicsCollide(data, phys)
     local hitEnt = data.HitEntity
 
     if IsValid(hitEnt) and hitEnt:GetClass() == "grow_tent" then
+		-- do nothing if there is already soil
         local current = hitEnt:GetNWInt("SoilUsesLeft", 0)
-
         if current >= 1 then return end
+		
+		local hasPot = hitEnt:GetNWString("PotType") ~= ""
+        if hasPot == false then return end
 
 		-- tell the grow tent some variables
         hitEnt:SetNWInt("SoilUsesLeft", self.SoilRefillAmount)

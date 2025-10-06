@@ -2,7 +2,7 @@ AddCSLuaFile()
 
 ENT.Type = "anim"
 ENT.Base = "base_soil_bag"
-ENT.PrintName = "Soil Bag"
+ENT.PrintName = "Soil Bag - Long Life"
 ENT.Category = "DarkRP"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true

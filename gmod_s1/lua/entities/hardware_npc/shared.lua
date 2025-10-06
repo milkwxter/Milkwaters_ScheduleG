@@ -15,6 +15,7 @@ local categories = {
         {name = "Soil Bag", price = 10, class = "soil_bag"},
         {name = "Long Life Soil Bag", price = 30, class = "soil_bag_long_life"},
         {name = "Extra Long Life Soil Bag", price = 60, class = "soil_bag_extra_long_life"},
+        {name = "Plastic Pot", price = 20, class = "pot_plastic"},
     }},
     {name = "Tools", items = {
         {name = "Plant Trimmers", price = 10, class = "weapon_planttrimmers"},
@@ -155,7 +156,7 @@ if CLIENT then
 		
 		local center = (mn + mx) * 0.5
 		
-		panel:SetFOV(45)
+		panel:SetFOV(60)
 		panel:SetCamPos(center + Vector(size, size, size))
 		panel:SetLookAt(center)
 	end
