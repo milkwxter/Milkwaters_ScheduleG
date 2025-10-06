@@ -247,10 +247,10 @@ if CLIENT then
 			local dirtColorVec = self:GetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
 			local dirtColor = Color(dirtColorVec.x * 255, dirtColorVec.y * 255, dirtColorVec.z * 255)
 	
-            local dirtPos = self:GetPos() + (self:GetUp() * 25) + (self:GetForward() * 2.5) + (self:GetRight() * 1.1)
+            local dirtPos = self:GetPos() + (self:GetUp() * 25)
             local dirtAng = self:GetAngles()
 			
-			local scale = 0.29
+			local scale = 0.3
 
             local mat = Matrix()
             mat:Scale(Vector(scale, scale, scale))
@@ -291,8 +291,11 @@ if CLIENT then
 		end
 
 		if potType ~= "" then
-			self.PotModel = ClientsideModel("models/weed_pot/weed_pot.mdl")
-			
+			if potType == "pot_water_retaining" then
+				self.PotModel = ClientsideModel("models/weed_pot_water_retaining/weed_pot_water_retaining.mdl")
+			else
+				self.PotModel = ClientsideModel("models/weed_pot/weed_pot.mdl")
+			end
 			-- draw it manually in the draw function
 			self.PotModel:SetNoDraw(true)
 		end

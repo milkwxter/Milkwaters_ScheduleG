@@ -16,6 +16,7 @@ local categories = {
         {name = "Long Life Soil Bag", price = 30, class = "soil_bag_long_life"},
         {name = "Extra Long Life Soil Bag", price = 60, class = "soil_bag_extra_long_life"},
         {name = "Plastic Pot", price = 20, class = "pot_plastic"},
+        {name = "Water Retaining Pot", price = 50, class = "pot_water_retaining"},
     }},
     {name = "Tools", items = {
         {name = "Plant Trimmers", price = 10, class = "weapon_planttrimmers"},
