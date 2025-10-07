@@ -21,6 +21,7 @@ local categories = {
     {name = "Tools", items = {
         {name = "Plant Trimmers", price = 10, class = "weapon_planttrimmers"},
         {name = "Watering Can", price = 15, class = "weapon_wateringcan"},
+        {name = "Electric Plant Trimmers", price = 1000, class = "weapon_electrictrimmers"},
     }},
     {name = "Packaging", items = {
         {name = "Baggie", price = 1, class = "weed"},

@@ -52,13 +52,21 @@ if SERVER then
 		-- ready for harvest path
 		if growth >= 100 then
 			local wep = ply:GetActiveWeapon()
-			if not IsValid(wep) or wep:GetClass() ~= "weapon_planttrimmers" then
+			if not IsValid(wep) or (wep:GetClass() ~= "weapon_planttrimmers" and wep:GetClass() ~= "weapon_electrictrimmers") then
 				DarkRP.notify(ply, 1, 4, "You need plant trimmers equipped to shear this plant!")
 				return
 			end
+			
+			-- check trimmers
+			local toShear = 0
+			if wep:GetClass() == "weapon_planttrimmers" then
+				toShear = 1
+			elseif wep:GetClass() == "weapon_electrictrimmers" then
+				toShear = 10
+			end
 
 			if shears < 10 then
-				self:SetNWInt("ShearCount", shears + 1)
+				self:SetNWInt("ShearCount", shears + toShear)
 
 				self:EmitSound("physics/wood/wood_strain2.wav", 75, 100)
 				local effect = EffectData()
