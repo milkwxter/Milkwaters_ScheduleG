@@ -1,13 +1,55 @@
-AddCSLuaFile()
+DEFINE_BASECLASS("base_shop_npc")
 
-ENT.Base = "base_ai"
-ENT.Type = "ai"
 ENT.PrintName = "NPC Dealer"
 ENT.Author = "Milkwater"
 ENT.Category = "DarkRP (Schedule 1)"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
+ENT.ShopName = "Bud's Seeds"
+ENT.ShopModel = "models/odessa.mdl"
+
+ENT.ShopTheme = {
+    Background = Color(255, 255, 255),
+    CardBackground = Color(240, 240, 240),
+    TabBackground = Color(112, 130, 23, 255),
+    TabForeground = Color(102, 120, 13, 255),
+    Text = Color(0, 0, 0),
+    Price = Color(90, 185, 90),
+}
+
+ENT.Categories = {
+    {name = "Seeds", items = {
+        {name = "OG Kush Seed", price = 30, class = "weed"},
+        {name = "Sour Diesel Seed", price = 60, class = "weed"},
+        {name = "Green Crack Seed", price = 90, class = "weed"},
+        {name = "Granddaddy Purple Seed", price = 120, class = "weed"},
+    }},
+}
+
+function ENT:HandlePurchase(ply, item)
+	-- check if player has a outstanding drop
+	if ActiveDeadDrops[ply] and IsValid(ActiveDeadDrops[ply]) then
+		DarkRP.notify(ply, 1, 4, "You already have an active dead drop! Collect it first.")
+		return
+	end
+	
+	local successfulDeadDrop = self:PlaceDeadDrop(ply)
+	
+	-- if the drop failed, stop
+	if successfulDeadDrop == nil then return end
+	
+	-- otherwise, place a cool marker
+	net.Start("SG_SetDeadDropMarker")
+		net.WriteEntity(successfulDeadDrop)
+	net.Send(ply)
+	
+	-- lock the drop for other players
+	successfulDeadDrop.LockedTo = ply
+	
+	-- assign the player in the global table
+	ActiveDeadDrops[ply] = successfulDeadDrop
+end
 
 if SERVER then
 	-- net messages
@@ -15,44 +57,6 @@ if SERVER then
 	
 	-- global drop table
 	ActiveDeadDrops = ActiveDeadDrops or {}
-	
-	-- initialize entity
-	function ENT:Initialize()
-		self:SetModel("models/odessa.mdl")
-		self:SetHullType(0)
-		self:SetHullSizeNormal()
-		self:SetNPCState(NPC_STATE_SCRIPT)
-		self:SetSolid(SOLID_BBOX)
-		self:SetUseType(SIMPLE_USE)
-		self:SetMoveType(MOVETYPE_NONE)
-	end
-	
-	-- when someone presses "E" on this entity
-	function ENT:AcceptInput(inputName, activator, caller)
-		if inputName == "Use" and IsValid(caller) and caller:IsPlayer() then
-			-- check if player has a outstanding drop
-			if ActiveDeadDrops[caller] and IsValid(ActiveDeadDrops[caller]) then
-				DarkRP.notify(caller, 1, 4, "You already have an active dead drop! Collect it first.")
-				return
-			end
-			
-			local successfulDeadDrop = self:PlaceDeadDrop(caller)
-			
-			-- if the drop failed, stop
-			if successfulDeadDrop == nil then return end
-			
-			-- otherwise, place a cool marker
-			net.Start("SG_SetDeadDropMarker")
-				net.WriteEntity(successfulDeadDrop)
-			net.Send(caller)
-			
-			-- lock the drop for other players
-			successfulDeadDrop.LockedTo = caller
-			
-			-- assign the player in the global table
-			ActiveDeadDrops[caller] = successfulDeadDrop
-		end
-	end
 	
 	-- this handles placing seeds on the dead drops
 	function ENT:PlaceDeadDrop(ply)
@@ -89,19 +93,6 @@ if SERVER then
 end
 
 if CLIENT then
-	-- draw the 3d2d text
-    function ENT:Draw()
-        self:DrawModel()
-		
-        local pos = self:GetPos() + Vector(0, 0, 80)
-        local ang = Angle(0, LocalPlayer():EyeAngles().y - 90, 90)
-
-        cam.Start3D2D(pos, ang, 0.2)
-			draw.SimpleTextOutlined("Dealer NPC", "DermaLarge", 0, -20, Color(112, 130, 23, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
-			draw.SimpleTextOutlined("Order seeds here!", "DermaDefault", 0, 0, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
-        cam.End3D2D()
-    end
-	
 	-- draw a marker for the player to find his package
 	local markedDrop
 	net.Receive("SG_SetDeadDropMarker", function()
