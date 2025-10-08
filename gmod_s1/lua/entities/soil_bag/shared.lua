@@ -3,7 +3,7 @@ AddCSLuaFile()
 ENT.Type = "anim"
 ENT.Base = "base_soil_bag"
 ENT.PrintName = "Soil Bag"
-ENT.Category = "DarkRP"
+ENT.Category = "DarkRP (Schedule 1)"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.Model = "models/soil_bag/soil_bag.mdl"

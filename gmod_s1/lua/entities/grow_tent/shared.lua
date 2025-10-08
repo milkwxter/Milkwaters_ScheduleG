@@ -4,7 +4,7 @@ ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 ENT.PrintName = "Grow Tent"
 ENT.Author = "Milkwater"
-ENT.Category = "DarkRP"
+ENT.Category = "DarkRP (Schedule 1)"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
@@ -75,17 +75,7 @@ if SERVER then
 				util.Effect("weed_boom", effect, true, true)
 
 				if self:GetNWInt("ShearCount") >= 10 then
-					self:SetNWBool("Growing", false)
-					self:SetNWInt("Growth", 0)
-					self:SetNWInt("ShearCount", 0)
-					self:SetNWInt("SoilUsesLeft", soilUses - 1)
-
-					local product = ents.Create("weed")
-					if IsValid(product) then
-						local ang = self:GetAngles()
-						product:SetPos(self:GetPos() + ang:Up() * 50 + ang:Forward() * 40)
-						product:Spawn()
-					end
+					self:ProduceWeed()
 				end
 			end
 			return
@@ -126,6 +116,22 @@ if SERVER then
         self:NextThink(CurTime() + 1)
         return true
     end
+	
+	function ENT:ProduceWeed()
+		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
+		
+		self:SetNWBool("Growing", false)
+		self:SetNWInt("Growth", 0)
+		self:SetNWInt("ShearCount", 0)
+		self:SetNWInt("SoilUsesLeft", soilUses - 1)
+
+		local product = ents.Create("weed")
+		if IsValid(product) then
+			local ang = self:GetAngles()
+			product:SetPos(self:GetPos() + ang:Up() * 50 + ang:Forward() * 40)
+			product:Spawn()
+		end
+	end
 end
 
 if CLIENT then

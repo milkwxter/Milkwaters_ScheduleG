@@ -4,13 +4,14 @@ ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 ENT.PrintName = "Dead Drop"
 ENT.Author = "Milkwater"
-ENT.Category = "DarkRP"
+ENT.Category = "DarkRP (Schedule 1)"
 ENT.Spawnable = true
 ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
 ENT.StoredItems = {}
 ENT.MaxItems = 5
+ENT.LockedTo = nil
 
 if SERVER then
 	-- net messages
@@ -31,15 +32,31 @@ if SERVER then
 		end
 		
 		self.StoredItems = {}
-		self:AddItem("weed")
+		self.LockedTo = nil
+		
+		-- can lockpick
+		self.DarkRPCanLockpick = true
 	end
 
 	-- when someone presses "E" on this entity
 	function ENT:AcceptInput(inputName, activator, caller)
         if inputName == "Use" and IsValid(caller) and caller:IsPlayer() then
+			-- check lock
+			if IsValid(self.LockedTo) and self.LockedTo ~= caller then
+				DarkRP.notify(caller, 1, 4, "This drop is locked and you can't access it. Try a lockpick!")
+				return
+			end
+			
+			-- alert about lockpick status
+			if self.WasLockpicked and self.LockedTo == caller then
+				DarkRP.notify(caller, 1, 6, "Damn. The lock was picked.")
+				self.WasLockpicked = nil
+			end
+		
+			-- send inventory
             net.Start("SG_OpenDeadDropInventory")
-			net.WriteEntity(self)
-			net.WriteTable(self.StoredItems or {})
+				net.WriteEntity(self)
+				net.WriteTable(self.StoredItems or {})
             net.Send(caller)
         end
     end
@@ -80,9 +97,14 @@ if SERVER then
 		})
 	end
 	
-	-- helper function to see how many items are in the drop
+	-- helper function to see if the drop is full
 	function ENT:IsFull()
 		return #self.StoredItems >= self.MaxItems
+	end
+	
+	-- helper function to see if the drop is empty
+	function ENT:IsEmpty()
+		return #self.StoredItems <= 0
 	end
 	
 	-- net message when player tries to take an item
@@ -121,6 +143,14 @@ if SERVER then
 			DarkRP.notify(ply, 1, 4, msg or "Could not add to pocket.")
 		else
 			DarkRP.notify(ply, 0, 4, "Added " .. (itemData.name or class) .. " to your pocket.")
+			
+			-- if drop is now empty, clear lock and free the player for another drop
+			if table.IsEmpty(deadDropEntity.StoredItems) then
+				if IsValid(deadDropEntity.LockedTo) then
+					ActiveDeadDrops[deadDropEntity.LockedTo] = nil
+				end
+				deadDropEntity.LockedTo = nil
+			end
 		end
 		
 		-- send updated inventory back to client
@@ -128,6 +158,47 @@ if SERVER then
 			net.WriteEntity(deadDropEntity)
 			net.WriteTable(deadDropEntity.StoredItems)
 		net.Send(ply)
+	end)
+	
+	-- make it lockpickable
+	hook.Add("canLockpick", "DeadDrop_CanLockpick", function(ply, ent, trace)
+		if not IsValid(ent) then return end
+		if ent:GetClass() ~= "dead_drop" then return end
+
+		-- distance check
+		if trace.HitPos:DistToSqr(ply:GetShootPos()) > 10000 then
+			return false
+		end
+
+		-- block the owner from lockpicking their own drop
+		if IsValid(ent.LockedTo) and ent.LockedTo == ply then
+			return false
+		end
+
+		-- only allow if it’s actually locked
+		if not IsValid(ent.LockedTo) then
+			return false
+		end
+
+		-- allow it
+		return true
+	end)
+	
+	-- custom lockpick functionality
+	hook.Add("onLockpickCompleted", "DeadDrop_OnLockpickCompleted", function(ply, success, ent)
+		if not IsValid(ent) or ent:GetClass() ~= "dead_drop" then return end
+
+		if success then
+			-- unlock and let thief access it
+			DarkRP.notify(ply, 0, 4, "You successfully lockpicked the dead drop.")
+			if IsValid(ent.LockedTo) then
+				if ActiveDeadDrops then
+					ActiveDeadDrops[ent.LockedTo] = nil
+				end
+			end
+			ent.LockedTo = nil
+			ent.WasLockpicked = true
+		end
 	end)
 end
 
