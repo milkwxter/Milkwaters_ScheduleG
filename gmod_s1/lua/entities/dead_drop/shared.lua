@@ -13,6 +13,11 @@ ENT.StoredItems = {}
 ENT.MaxItems = 5
 ENT.LockedTo = nil
 
+-- network whether or not the drop has atleast 1 item inside for clients
+function ENT:SetupDataTables()
+	self:NetworkVar("Bool", 0, "HasItems")
+end
+
 if SERVER then
 	-- net messages
 	util.AddNetworkString("SG_OpenDeadDropInventory")
@@ -20,16 +25,11 @@ if SERVER then
 	
 	-- initialize entity
 	function ENT:Initialize()
-		self:SetModel("models/props_lab/lockerdoorleft.mdl")
+		self:SetModel("models/dead_drop/dead_drop.mdl")
 		self:PhysicsInit(SOLID_VPHYSICS)
-		self:SetMoveType(MOVETYPE_NONE)
+		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
 		self:SetUseType(SIMPLE_USE)
-		
-		local phys = self:GetPhysicsObject()
-		if IsValid(phys) then
-			phys:EnableMotion(false)
-		end
 		
 		self.StoredItems = {}
 		self.LockedTo = nil
@@ -53,6 +53,9 @@ if SERVER then
 			DarkRP.notify(caller, 1, 2, "Damn. The lock was picked.")
 			self.WasLockpicked = nil
 		end
+		
+		-- effects
+		self:EmitSound("doors/door_metal_thin_close2.wav", 75, 100)
 
 		-- open inventory for whoever is allowed at this point
 		net.Start("SG_OpenDeadDropInventory")
@@ -95,6 +98,9 @@ if SERVER then
 			name  = name,
 			id    = #self.StoredItems + 1
 		})
+		
+		-- network to clients
+		self:SetHasItems(true)
 	end
 	
 	-- helper function to see if the drop is full
@@ -150,6 +156,11 @@ if SERVER then
 					ActiveDeadDrops[deadDropEntity.LockedTo] = nil
 				end
 				deadDropEntity.LockedTo = nil
+			end
+			
+			-- network to clients
+			if table.IsEmpty(deadDropEntity.StoredItems) then
+				deadDropEntity:SetHasItems(false)
 			end
 		end
 		
@@ -263,4 +274,28 @@ if CLIENT then
 
 		ddFrame:SetSkin(GAMEMODE.Config.DarkRPSkin)
 	end)
+	
+	-- called every tick as well
+	function ENT:Draw()
+		-- do the basics
+		self:DrawModel()
+		
+		local hasItems = self:GetHasItems()
+		
+		-- show a small light if theres items
+        if hasItems then
+            local dlight = DynamicLight(self:EntIndex())
+            if dlight then
+                dlight.pos = self:GetPos() + (self:GetUp() * 25)
+                dlight.r = 255
+                dlight.g = 255
+                dlight.b = 255
+                dlight.brightness = 1.0
+                dlight.Decay = 500
+                dlight.Size = 100
+				-- refresh every frame
+                dlight.DieTime = CurTime() + 0.1
+            end
+        end
+	end
 end

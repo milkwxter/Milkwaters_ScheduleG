@@ -121,8 +121,9 @@ if CLIENT then
 		local dist = ply:GetPos():Distance(dropPos)
 		local meters = math.Round(dist * 0.01905)
 		
-		-- clear the marker once the player is close enough
-		if meters <= 1 then
+		-- clear the marker once the player is close enough and its empty
+		local hasItems = markedDrop:GetHasItems()
+		if meters <= 5 and not hasItems then
 			markedDrop = nil
 			return
 		end
@@ -131,7 +132,7 @@ if CLIENT then
 			"Dead Drop",
 			"DermaLarge",
 			screenPos.x, screenPos.y,
-			Color(0, 255, 0),
+			Color(112, 130, 23, 255),
 			TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER,
 			1, Color(0,0,0)
 		)

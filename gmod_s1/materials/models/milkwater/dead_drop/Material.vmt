@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/milkwater/dead_drop/Material"
+    "$alphatest" "1"
+    "$alpha" "1"
+}
