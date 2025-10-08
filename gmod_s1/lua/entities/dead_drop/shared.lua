@@ -40,25 +40,25 @@ if SERVER then
 
 	-- when someone presses "E" on this entity
 	function ENT:AcceptInput(inputName, activator, caller)
-        if inputName == "Use" and IsValid(caller) and caller:IsPlayer() then
-			-- check lock
-			if IsValid(self.LockedTo) and self.LockedTo ~= caller then
-				DarkRP.notify(caller, 1, 4, "This drop is locked and you can't access it. Try a lockpick!")
-				return
-			end
-			
-			-- alert about lockpick status
-			if self.WasLockpicked and self.LockedTo == caller then
-				DarkRP.notify(caller, 1, 6, "Damn. The lock was picked.")
-				self.WasLockpicked = nil
-			end
-		
-			-- send inventory
-            net.Start("SG_OpenDeadDropInventory")
-				net.WriteEntity(self)
-				net.WriteTable(self.StoredItems or {})
-            net.Send(caller)
-        end
+        if inputName ~= "Use" or not IsValid(caller) or not caller:IsPlayer() then return end
+
+		-- if it's locked to someone else and hasn't been picked yet
+		if IsValid(self.LockedTo) and self.LockedTo ~= caller and not self.WasLockpicked then
+			DarkRP.notify(caller, 1, 4, "This drop is locked and you can't access it. Try a lockpick!")
+			return
+		end
+
+		-- if the rightful owner opens it after it was picked
+		if self.WasLockpicked and self.LockedTo == caller then
+			DarkRP.notify(caller, 1, 2, "Damn. The lock was picked.")
+			self.WasLockpicked = nil
+		end
+
+		-- open inventory for whoever is allowed at this point
+		net.Start("SG_OpenDeadDropInventory")
+			net.WriteEntity(self)
+			net.WriteTable(self.StoredItems or {})
+		net.Send(caller)
     end
 	
 	-- helper function to add items to the drop
@@ -145,7 +145,7 @@ if SERVER then
 			DarkRP.notify(ply, 0, 4, "Added " .. (itemData.name or class) .. " to your pocket.")
 			
 			-- if drop is now empty, clear lock and free the player for another drop
-			if table.IsEmpty(deadDropEntity.StoredItems) then
+			if table.IsEmpty(deadDropEntity.StoredItems) and ply == deadDropEntity.LockedTo then
 				if IsValid(deadDropEntity.LockedTo) then
 					ActiveDeadDrops[deadDropEntity.LockedTo] = nil
 				end
@@ -191,15 +191,16 @@ if SERVER then
 		if success then
 			-- unlock and let thief access it
 			DarkRP.notify(ply, 0, 4, "You successfully lockpicked the dead drop.")
-			if IsValid(ent.LockedTo) then
-				if ActiveDeadDrops then
-					ActiveDeadDrops[ent.LockedTo] = nil
-				end
-			end
-			ent.LockedTo = nil
 			ent.WasLockpicked = true
 		end
 	end)
+	
+	-- clear global list responsibly
+	function ENT:OnRemove()
+		if ActiveDeadDrops and IsValid(self.LockedTo) then
+			ActiveDeadDrops[self.LockedTo] = nil
+		end
+	end
 end
 
 if CLIENT then
