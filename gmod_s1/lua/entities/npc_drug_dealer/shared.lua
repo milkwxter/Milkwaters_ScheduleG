@@ -20,10 +20,10 @@ ENT.ShopTheme = {
 
 ENT.Categories = {
     {name = "Seeds", items = {
-        {name = "OG Kush Seed", price = 30, class = "weed"},
-        {name = "Sour Diesel Seed", price = 60, class = "weed"},
-        {name = "Green Crack Seed", price = 90, class = "weed"},
-        {name = "Granddaddy Purple Seed", price = 120, class = "weed"},
+        {name = "OG Kush Seed", price = 30, class = "seed_og_kush"},
+        {name = "Sour Diesel Seed", price = 60, class = "seed_og_kush"},
+        {name = "Green Crack Seed", price = 90, class = "seed_og_kush"},
+        {name = "Granddaddy Purple Seed", price = 120, class = "seed_og_kush"},
     }},
 }
 
@@ -34,7 +34,7 @@ function ENT:HandlePurchase(ply, item)
 		return
 	end
 	
-	local successfulDeadDrop = self:PlaceDeadDrop(ply)
+	local successfulDeadDrop = self:PlaceDeadDrop(ply, item)
 	
 	-- if the drop failed, stop
 	if successfulDeadDrop == nil then return end
@@ -59,7 +59,7 @@ if SERVER then
 	ActiveDeadDrops = ActiveDeadDrops or {}
 	
 	-- this handles placing seeds on the dead drops
-	function ENT:PlaceDeadDrop(ply)
+	function ENT:PlaceDeadDrop(ply, item)
 		local deadDrops = ents.FindByClass("dead_drop")
 
 		-- error if no dead drops are placed
@@ -86,7 +86,7 @@ if SERVER then
 		local chosenDrop = validDrops[math.random(#validDrops)]
 		
 		-- do awesome stuff
-		chosenDrop:AddItem("weed")
+		chosenDrop:AddItem(item)
 		DarkRP.notify(ply, 0, 4, "Your dead drop is ready. Go get it!")
 		return chosenDrop
 	end
