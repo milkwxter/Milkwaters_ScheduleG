@@ -8,6 +8,7 @@ ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 ENT.ShopName = "Bud's Seeds"
 ENT.ShopModel = "models/odessa.mdl"
+ENT.MaxItemsPerPurchase = 5
 
 ENT.ShopTheme = {
     Background = Color(255, 255, 255),
@@ -27,14 +28,14 @@ ENT.Categories = {
     }},
 }
 
-function ENT:HandlePurchase(ply, item)
+function ENT:HandlePurchase(ply, class, price, amount)
 	-- check if player has a outstanding drop
 	if ActiveDeadDrops[ply] and IsValid(ActiveDeadDrops[ply]) then
 		DarkRP.notify(ply, 1, 4, "You already have an active dead drop! Collect it first.")
 		return
 	end
 	
-	local successfulDeadDrop = self:PlaceDeadDrop(ply, item)
+	local successfulDeadDrop = self:PlaceDeadDrop(ply, class, amount)
 	
 	-- if the drop failed, stop
 	if successfulDeadDrop == nil then return end
@@ -59,7 +60,7 @@ if SERVER then
 	ActiveDeadDrops = ActiveDeadDrops or {}
 	
 	-- this handles placing seeds on the dead drops
-	function ENT:PlaceDeadDrop(ply, item)
+	function ENT:PlaceDeadDrop(ply, item, amount)
 		local deadDrops = ents.FindByClass("dead_drop")
 
 		-- error if no dead drops are placed
@@ -86,7 +87,9 @@ if SERVER then
 		local chosenDrop = validDrops[math.random(#validDrops)]
 		
 		-- do awesome stuff
-		chosenDrop:AddItem(item)
+		for i = 1, amount do
+			chosenDrop:AddItem(item)
+		end
 		DarkRP.notify(ply, 0, 4, "Your dead drop is ready. Go get it!")
 		return chosenDrop
 	end

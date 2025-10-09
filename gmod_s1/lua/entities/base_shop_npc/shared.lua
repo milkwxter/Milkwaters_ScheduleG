@@ -13,6 +13,7 @@ ENT.AutomaticFrameAdvance = true
 ENT.ShopName   = "Generic Shop"
 ENT.ShopModel  = "models/Humans/Group01/male_07.mdl"
 ENT.Categories = {}
+ENT.MaxItemsPerPurchase = 10
 
 ENT.ShopTheme = {
     Background      = Color(255, 255, 255),
@@ -63,6 +64,7 @@ if SERVER then
         local ent = net.ReadEntity()
         local class = net.ReadString()
         local price = net.ReadInt(32)
+		local amount = net.ReadInt(16)
 
         if not IsValid(ent) or not ent.Categories then return end
 
@@ -83,22 +85,24 @@ if SERVER then
         end
 
         -- pocket space
-        local max = RPExtraTeams[ply:Team()].maxpocket or GAMEMODE.Config.pocketitems
-        if table.Count(ply.darkRPPocket or {}) >= max then
-            DarkRP.notify(ply, 1, 4, "Your pocket is full!")
-            return
-        end
+        local maxPocket = RPExtraTeams[ply:Team()].maxpocket or GAMEMODE.Config.pocketitems
+		local currentPocketSpace = table.Count(ply.darkRPPocket or {})
+		if currentPocketSpace + amount > maxPocket then
+			DarkRP.notify(ply, 1, 4, "Not enough pocket space!")
+			return
+		end
 
         -- money
-        if not ply:canAfford(price) then
+		local totalPrice = price * amount
+        if not ply:canAfford(totalPrice) then
             DarkRP.notify(ply, 1, 4, "You can’t afford this!")
             return
         end
 
-        ply:addMoney(-price)
+        ply:addMoney(-totalPrice)
 
         -- custom buy handler
-        ent:HandlePurchase(ply, class)
+        ent:HandlePurchase(ply, class, totalPrice, amount)
     end)
 end
 
@@ -189,6 +193,15 @@ if CLIENT then
                 nameLabel:SetTextColor(ShopTheme.Text)
                 nameLabel:SizeToContents()
                 nameLabel:SetPos(10, 135)
+				
+				local slider = vgui.Create("DNumSlider", card)
+				slider:SetPos(40, 160)
+				slider:SetSize(160, 20)
+				slider:SetText("")
+				slider:SetMin(1)
+				slider:SetMax(ent.MaxItemsPerPurchase)
+				slider:SetDecimals(0)
+				slider:SetValue(1)
 
                 local priceLabel = vgui.Create("DLabel", card)
                 priceLabel:SetText("$" .. item.price)
@@ -208,10 +221,12 @@ if CLIENT then
 					draw.SimpleText("Purchase", "Trebuchet18", w/2, h/2, ShopTheme.Text, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 				end
                 buyBtn.DoClick = function()
+					local amount = math.floor(slider:GetValue())
                     net.Start("Shop_BuyItem")
                         net.WriteEntity(ent)
                         net.WriteString(item.class)
                         net.WriteInt(item.price, 32)
+						net.WriteInt(amount, 16)
                     net.SendToServer()
                 end
             end

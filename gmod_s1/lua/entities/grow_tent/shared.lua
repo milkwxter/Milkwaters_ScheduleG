@@ -35,8 +35,13 @@ if SERVER then
         self:SetNWInt("Water", 0)
 		self:SetNWInt("ShearCount", 0)
 		self:SetNWInt("SoilUsesLeft", 0)
-		self:SetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
+		self:SetNWVector("DirtColor", Vector(255/255, 255/255, 255/255))
         self:SetNWString("PotType", "")
+		
+		-- growing weed stats
+		self:SetNWVector("PlantColor", Vector(255/255, 255/255, 255/255))
+        self:SetNWString("Product", "")
+        self:SetNWString("PlantName", "")
 	end
 	
 	-- called when a player uses it
@@ -48,6 +53,7 @@ if SERVER then
 		local shears    = self:GetNWInt("ShearCount", 0)
 		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
 		local isGrowing = self:GetNWBool("Growing", false)
+		local seed = self:GetNWBool("PlantName", "")
 		
 		-- ready for harvest path
 		if growth >= 100 then
@@ -82,7 +88,7 @@ if SERVER then
 		end
 		
 		-- starting growth path
-		if not isGrowing and soilUses > 0 then
+		if not isGrowing and soilUses > 0 and seed ~= "" then
 			self:SetNWBool("Growing", true)
 		end
 	end
@@ -93,9 +99,10 @@ if SERVER then
             local growth = self:GetNWInt("Growth")
             local water = self:GetNWInt("Water")
 			local potType = self:GetNWString("PotType")
+			local plantName = self:GetNWString("PlantName")
 
 			-- if we are allowed to grow
-            if water > 0 and growth < 100 then
+            if water > 0 and growth < 100 and plantName ~= "" then
 				-- increment growth regardless
                 self:SetNWInt("Growth", math.min(growth + 2, 100))
 				
@@ -120,12 +127,15 @@ if SERVER then
 	function ENT:ProduceWeed()
 		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
 		
+		-- reset vars
 		self:SetNWBool("Growing", false)
 		self:SetNWInt("Growth", 0)
 		self:SetNWInt("ShearCount", 0)
 		self:SetNWInt("SoilUsesLeft", soilUses - 1)
-
-		local product = ents.Create("weed")
+        self:SetNWString("PlantName", "")
+		
+        local productClass = self:GetNWString("Product", "")
+		local product = ents.Create(productClass)
 		if IsValid(product) then
 			local ang = self:GetAngles()
 			product:SetPos(self:GetPos() + ang:Up() * 50 + ang:Forward() * 40)
@@ -135,6 +145,11 @@ if SERVER then
 end
 
 if CLIENT then
+	-- materials
+	local matWater = Material("vgui/icons/water_icon.png", "smooth")
+	local matSoil = Material("vgui/icons/soil_icon.png", "smooth")
+	local matPlant = Material("vgui/icons/plant_icon.png", "smooth")
+
 	-- make some clientside models
 	function ENT:Initialize()
         self.PlantModel = ClientsideModel("models/weed_plant/weed_plant.mdl")
@@ -184,6 +199,11 @@ if CLIENT then
         local growing = self:GetNWBool("Growing", false)
 		local shears = self:GetNWInt("ShearCount", 0)
 		local soil = self:GetNWInt("SoilUsesLeft", 0)
+		local plantName = self:GetNWString("PlantName", "")
+		
+		-- plant color
+		local plantColorVec = self:GetNWVector("PlantColor", Vector(255/255, 255/255, 255/255))
+		local plantColor = Color(plantColorVec.x * 255, plantColorVec.y * 255, plantColorVec.z * 255)
 		
 		-- get the pot model
 		local potType = self:GetNWString("PotType")
@@ -202,30 +222,24 @@ if CLIENT then
 				headline, headlineColor, headlineY = "Needs Water!", Color(200,50,50), -40
 			end
 
-			draw.SimpleTextOutlined(headline, "DermaLarge", 0, headlineY, headlineColor,
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-
-			draw.SimpleTextOutlined("Growth: " .. growth .. "%", "DermaDefaultBold", 0, -20, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-			draw.SimpleTextOutlined("Water: " .. water .. "%", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-			draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 20, Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined(headline, "DermaLarge", 0, headlineY, headlineColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined("Plant: " .. plantName, "DermaDefaultBold", 0, -10, plantColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 		else
 			if growth >= 100 then
-				draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255,255,0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-				draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0,150,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255, 255, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0, 150, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			else
-				if soil > 0 and potType ~= "" then
-					headline, headlineColor = "Press E to Start Growing", Color(255,255,255)
+				if soil > 0 and potType ~= "" and plantName ~= "" then
+					headline, headlineColor = "Press E to Start Growing", Color(255, 255, 255)
 				elseif potType == "" then
-					headline, headlineColor = "Needs a Pot!", Color(200,50,50)
+					headline, headlineColor = "Needs a Pot!", Color(200, 50, 50)
+				elseif soil <= 0 then
+					headline, headlineColor = "Needs Soil!", Color(200, 50, 50)
 				else
-					headline, headlineColor = "Needs Soil!", Color(200,50,50)
+					headline, headlineColor = "Needs a Seed!", Color(200, 50, 50)
 				end
 
-				draw.SimpleTextOutlined(headline, "DermaLarge", 0, -20, headlineColor,
-					TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
-
-				draw.SimpleTextOutlined("Soil Uses Left: " .. soil, "DermaDefaultBold", 0, 10,
-					Color(139,69,19), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+				draw.SimpleTextOutlined(headline, "DermaLarge", 0, -20, headlineColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
 			end
 		end
 		cam.End3D2D()
@@ -243,7 +257,9 @@ if CLIENT then
 
             self.PlantModel:SetPos(plantPos)
             self.PlantModel:SetAngles(plantAng)
-            self.PlantModel:DrawModel()
+			render.SetColorModulation(plantColor.r/255, plantColor.g/255, plantColor.b/255)
+			self.PlantModel:DrawModel()
+			render.SetColorModulation(1, 1, 1)
         end
 		
 		-- draw a pot model
@@ -258,7 +274,7 @@ if CLIENT then
 		
 		-- draw a dirt model
         if IsValid(self.DirtModel) and soil >= 1 then
-			local dirtColorVec = self:GetNWVector("DirtColor", Vector(139/255, 69/255, 19/255))
+			local dirtColorVec = self:GetNWVector("DirtColor", Vector(255/255, 255/255, 255/255))
 			local dirtColor = Color(dirtColorVec.x * 255, dirtColorVec.y * 255, dirtColorVec.z * 255)
 	
             local dirtPos = self:GetPos() + (self:GetUp() * 25)
@@ -292,6 +308,89 @@ if CLIENT then
                 dlight.DieTime = CurTime() + 0.1
             end
         end
+		
+		-- draw a water bar
+		local barLength = 70
+		local barHeight = 20
+		local barOffsetY = 330
+		cam.Start3D2D(pos, ang, 0.2)
+			-- background
+			surface.SetDrawColor(50, 50, 50, 200)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- fill
+			local fillWidth = math.Clamp(water, 0, 100) / 100 * barLength
+			surface.SetDrawColor(0, 150, 255, 255)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, fillWidth, barHeight)
+
+			-- outline
+			surface.SetDrawColor(0, 0, 0, 255)
+			surface.DrawOutlinedRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- icon to the left
+			surface.SetMaterial(matWater)
+			surface.SetDrawColor(255, 255, 255, 255)
+			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
+
+			-- text overlay
+			draw.SimpleText(water .. "%", "DermaDefaultBold",
+				0, barOffsetY, color_white,
+				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		cam.End3D2D()
+		
+		-- draw a soil bar
+		barOffsetY = barOffsetY - 25
+		cam.Start3D2D(pos, ang, 0.2)
+			-- background
+			surface.SetDrawColor(50, 50, 50, 200)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- fill
+			local fillWidth = math.Clamp(soil, 0, 3) / 3 * barLength
+			surface.SetDrawColor(139, 69, 19, 255)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, fillWidth, barHeight)
+
+			-- outline
+			surface.SetDrawColor(0, 0, 0, 255)
+			surface.DrawOutlinedRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- icon to the left
+			surface.SetMaterial(matSoil)
+			surface.SetDrawColor(255, 255, 255, 255)
+			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
+
+			-- text overlay
+			draw.SimpleText("Uses left: " .. soil, "DermaDefaultBold",
+				0, barOffsetY, color_white,
+				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		cam.End3D2D()
+		
+		-- draw a growth bar
+		barOffsetY = barOffsetY - 25
+		cam.Start3D2D(pos, ang, 0.2)
+			-- background
+			surface.SetDrawColor(50, 50, 50, 200)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- fill
+			local fillWidth = math.Clamp(growth, 0, 100) / 100 * barLength
+			surface.SetDrawColor(plantColor)
+			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, fillWidth, barHeight)
+
+			-- outline
+			surface.SetDrawColor(0, 0, 0, 255)
+			surface.DrawOutlinedRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
+
+			-- icon to the left
+			surface.SetMaterial(matPlant)
+			surface.SetDrawColor(255, 255, 255, 255)
+			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
+
+			-- text overlay
+			draw.SimpleText(growth .. "%", "DermaDefaultBold",
+				0, barOffsetY, color_white,
+				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		cam.End3D2D()
 	end
 	
 	-- helper function to switch models for the pot

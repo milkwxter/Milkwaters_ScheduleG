@@ -8,6 +8,7 @@ ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 ENT.ShopName = "Dan's Hardware"
 ENT.ShopModel = "models/Humans/Group02/male_06.mdl"
+ENT.MaxItemsPerPurchase = 10
 
 ENT.ShopTheme = {
     Background = Color(255, 255, 255),
@@ -38,13 +39,19 @@ ENT.Categories = {
     }},
 }
 
-function ENT:HandlePurchase(ply, item)
-    local ent = ents.Create(item)
-	if not IsValid(ent) then
-		DarkRP.notify(ply, 1, 4, "Could not create item.")
-		return
-	end
-	ent:SetPos(ply:GetPos())
-	ent:Spawn()
-	ply:addPocketItem(ent)
+function ENT:HandlePurchase(ply, class, price, amount)
+    for i = 1, amount do
+		local ent = ents.Create(class)
+		if not IsValid(ent) then
+			DarkRP.notify(ply, 1, 4, "Could not create item.")
+			return
+		end
+		
+		ent:SetPos(ply:GetPos())
+		ent:Spawn()
+		ply:addPocketItem(ent)
+    end
+	
+	-- tell player of results
+	DarkRP.notify(ply, 0, 4, "Purchased " .. amount .. "x " .. class .. " for $" .. price)
 end

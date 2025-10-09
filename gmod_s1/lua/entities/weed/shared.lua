@@ -10,8 +10,9 @@ ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
 ENT.Model = "models/weed/weed.mdl"
+ENT.SellPrice = 60
+ENT.PlantName = "Weed"
 
-ENT.SellPrice = 38
 if SERVER then
     GAMEMODE.SellPrices = GAMEMODE.SellPrices or {}
     GAMEMODE.SellPrices["weed"] = ENT.SellPrice
@@ -66,7 +67,7 @@ if CLIENT then
 
 		-- draw the main text
 		cam.Start3D2D(pos, ang, 0.2)
-			draw.SimpleTextOutlined("Weed", "DermaLarge", 0, -20, Color(112, 130, 23, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
+			draw.SimpleTextOutlined(self.PlantName, "DermaLarge", 0, -20, Color(112, 130, 23, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
             draw.SimpleTextOutlined("Price: $" .. self.SellPrice, "DermaDefault", 0, 0, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 		cam.End3D2D()
 	end
