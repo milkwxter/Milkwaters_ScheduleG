@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/milkwater/seed_granddaddy_purple/MaterialOpaque"
+    "$nocull" "1"
+}

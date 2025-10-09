@@ -1,0 +1,9 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/milkwater/seed_sour_diesel/MaterialVial"
+	"$translucent" "1"
+	"$envmap" "env_cubemap"
+	"$envmaptint" "[0.3 0.3 0.3]"
+	"$alpha" "0.5"
+	"$nocull" "1"
+}
