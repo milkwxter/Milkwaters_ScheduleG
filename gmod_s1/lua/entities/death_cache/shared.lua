@@ -2,7 +2,7 @@ AddCSLuaFile()
 
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
-ENT.PrintName = "Dead Drop"
+ENT.PrintName = "Death Cache"
 ENT.Author = "Milkwater"
 ENT.Category = "DarkRP (Schedule 1)"
 ENT.Spawnable = true
@@ -10,55 +10,46 @@ ENT.AdminSpawnable = true
 ENT.AutomaticFrameAdvance = true
 
 ENT.StoredItems = {}
-ENT.MaxItems = 5
-ENT.LockedTo = nil
+ENT.MaxItems = 10
 
--- network whether or not the drop has atleast 1 item inside for clients
+-- le networking
 function ENT:SetupDataTables()
-	self:NetworkVar("Bool", 0, "HasItems")
+	self:NetworkVar("String", 0, "PlayerName")
 end
 
 if SERVER then
 	-- net messages
-	util.AddNetworkString("SG_OpenDeadDropInventory")
-	util.AddNetworkString("SG_TryTakeDeadDropItem")
+	util.AddNetworkString("SG_OpenDeathCacheInventory")
+	util.AddNetworkString("SG_TryTakeDeathCacheItem")
 	
 	-- initialize entity
 	function ENT:Initialize()
-		self:SetModel("models/dead_drop/dead_drop.mdl")
+		self:SetModel("models/fallout 3/backpack_2.mdl")
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetMoveType(MOVETYPE_VPHYSICS)
 		self:SetSolid(SOLID_VPHYSICS)
-		self:SetUseType(SIMPLE_USE)
+		
+		self:SetUseType( SIMPLE_USE )
+		
+		-- enable physics
+        local phys = self:GetPhysicsObject()
+        if IsValid(phys) then
+            phys:Wake()
+			phys:SetMass(50)
+        end
 		
 		self.StoredItems = {}
-		self.LockedTo = nil
-		
-		-- can lockpick
-		self.DarkRPCanLockpick = true
 	end
 
 	-- when someone presses "E" on this entity
 	function ENT:AcceptInput(inputName, activator, caller)
         if inputName ~= "Use" or not IsValid(caller) or not caller:IsPlayer() then return end
-
-		-- if it's locked to someone else and hasn't been picked yet
-		if IsValid(self.LockedTo) and self.LockedTo ~= caller and not self.WasLockpicked then
-			DarkRP.notify(caller, 1, 4, "This drop is locked and you can't access it. Try a lockpick!")
-			return
-		end
-
-		-- if the rightful owner opens it after it was picked
-		if self.WasLockpicked and self.LockedTo == caller then
-			DarkRP.notify(caller, 1, 2, "Damn. The lock was picked.")
-			self.WasLockpicked = nil
-		end
 		
 		-- effects
-		self:EmitSound("doors/door_metal_thin_close2.wav", 75, 100)
+		self:EmitSound("items/ammocrate_open.wav", 75, 100)
 
 		-- open inventory for whoever is allowed at this point
-		net.Start("SG_OpenDeadDropInventory")
+		net.Start("SG_OpenDeathCacheInventory")
 			net.WriteEntity(self)
 			net.WriteTable(self.StoredItems or {})
 		net.Send(caller)
@@ -68,9 +59,9 @@ if SERVER then
 	function ENT:AddItem(classname)
 		if not isstring(classname) then return end
 		
-		-- check if drop is already full
+		-- check if cache is already full
 		if self:IsFull() then
-			ErrorNoHalt("[DeadDrop] Warning: Tried to add item but drop is already full!\n")
+			ErrorNoHalt("[DeathCache] Warning: Tried to add item but cache is already full!\n")
 			return
 		end
 		
@@ -98,29 +89,26 @@ if SERVER then
 			name  = name,
 			id    = #self.StoredItems + 1
 		})
-		
-		-- network to clients
-		self:SetHasItems(true)
 	end
 	
-	-- helper function to see if the drop is full
+	-- helper function to see if the cache is full
 	function ENT:IsFull()
 		return #self.StoredItems >= self.MaxItems
 	end
 	
-	-- helper function to see if the drop is empty
+	-- helper function to see if the cache is empty
 	function ENT:IsEmpty()
 		return table.IsEmpty(self.StoredItems)
 	end
 	
 	-- net message when player tries to take an item
-	net.Receive("SG_TryTakeDeadDropItem", function(_, ply)
-		local deadDropEntity = net.ReadEntity()
+	net.Receive("SG_TryTakeDeathCacheItem", function(_, ply)
+		local cache = net.ReadEntity()
 		local itemIndex = net.ReadUInt(16)
 
 		if not IsValid(ply) or not ply:IsPlayer() then return end
-		if not IsValid(deadDropEntity) or deadDropEntity:GetClass() ~= "dead_drop" then return end
-		if not deadDropEntity.StoredItems or not deadDropEntity.StoredItems[itemIndex] then return end
+		if not IsValid(cache) or cache:GetClass() ~= "death_cache" then return end
+		if not cache.StoredItems or not cache.StoredItems[itemIndex] then return end
 		
 		-- stop from overflowing pockets
 		local job = ply:Team()
@@ -130,8 +118,8 @@ if SERVER then
 			return
 		end
 
-		local itemData = deadDropEntity.StoredItems[itemIndex]
-		deadDropEntity.StoredItems[itemIndex] = nil
+		local itemData = cache.StoredItems[itemIndex]
+		cache.StoredItems[itemIndex] = nil
 
 		local class = itemData.class
 		local ent = ents.Create(class)
@@ -149,75 +137,31 @@ if SERVER then
 			DarkRP.notify(ply, 1, 4, msg or "Could not add to pocket.")
 		else
 			DarkRP.notify(ply, 0, 4, "Added " .. (itemData.name or class) .. " to your pocket.")
+		end
+		
+		-- remove the cache when emptied out
+		if cache:IsEmpty() then
+			-- effects
+			local effect = EffectData()
+			effect:SetOrigin(cache:GetPos() + cache:GetUp() * 10)
+			util.Effect("StunstickImpact", effect, true, true)
+			cache:EmitSound("DoSpark")
 			
-			-- if drop is now empty, clear lock and free the player for another drop
-			if table.IsEmpty(deadDropEntity.StoredItems) and ply == deadDropEntity.LockedTo then
-				if IsValid(deadDropEntity.LockedTo) then
-					ActiveDeadDrops[deadDropEntity.LockedTo] = nil
-				end
-				deadDropEntity.LockedTo = nil
-			end
-			
-			-- network to clients
-			if table.IsEmpty(deadDropEntity.StoredItems) then
-				deadDropEntity:SetHasItems(false)
-			end
+			cache:Remove()
 		end
 		
 		-- send updated inventory back to client
-		net.Start("SG_OpenDeadDropInventory")
-			net.WriteEntity(deadDropEntity)
-			net.WriteTable(deadDropEntity.StoredItems)
+		net.Start("SG_OpenDeathCacheInventory")
+			net.WriteEntity(cache)
+			net.WriteTable(cache.StoredItems)
 		net.Send(ply)
 	end)
-	
-	-- make it lockpickable
-	hook.Add("canLockpick", "DeadDrop_CanLockpick", function(ply, ent, trace)
-		if not IsValid(ent) then return end
-		if ent:GetClass() ~= "dead_drop" then return end
-
-		-- distance check
-		if trace.HitPos:DistToSqr(ply:GetShootPos()) > 10000 then
-			return false
-		end
-
-		-- block the owner from lockpicking their own drop
-		if IsValid(ent.LockedTo) and ent.LockedTo == ply then
-			return false
-		end
-
-		-- only allow if it’s actually locked
-		if not IsValid(ent.LockedTo) then
-			return false
-		end
-
-		-- allow it
-		return true
-	end)
-	
-	-- custom lockpick functionality
-	hook.Add("onLockpickCompleted", "DeadDrop_OnLockpickCompleted", function(ply, success, ent)
-		if not IsValid(ent) or ent:GetClass() ~= "dead_drop" then return end
-
-		if success then
-			-- unlock and let thief access it
-			DarkRP.notify(ply, 0, 4, "You successfully lockpicked the dead drop.")
-			ent.WasLockpicked = true
-		end
-	end)
-	
-	-- clear global list responsibly
-	function ENT:OnRemove()
-		if ActiveDeadDrops and IsValid(self.LockedTo) then
-			ActiveDeadDrops[self.LockedTo] = nil
-		end
-	end
 end
 
 if CLIENT then
 	local ddFrame
 	
-	net.Receive("SG_OpenDeadDropInventory", function()
+	net.Receive("SG_OpenDeathCacheInventory", function()
 		local ent = net.ReadEntity()
 		local items = net.ReadTable()
 		if not IsValid(ent) or not items then return end
@@ -227,7 +171,7 @@ if CLIENT then
 		local count = ent.MaxItems
 		ddFrame = vgui.Create("DFrame")
 		ddFrame:SetSize(345, 32 + 64 * math.ceil(count / 5) + 3 * math.ceil(count / 5))
-		ddFrame:SetTitle("Dead Drop")
+		ddFrame:SetTitle("Death Cache")
 		ddFrame.btnMaxim:SetVisible(false)
 		ddFrame.btnMinim:SetVisible(false)
 		ddFrame:SetDraggable(false)
@@ -255,7 +199,7 @@ if CLIENT then
 			icon:SetSize(64, 64)
 			icon:SetTooltip(itemData.name or itemData.class)
 			icon.DoClick = function()
-				net.Start("SG_TryTakeDeadDropItem")
+				net.Start("SG_TryTakeDeathCacheItem")
 					net.WriteEntity(ent)
 					net.WriteUInt(itemIndex, 16)
 				net.SendToServer()
@@ -280,22 +224,17 @@ if CLIENT then
 		-- do the basics
 		self:DrawModel()
 		
-		local hasItems = self:GetHasItems()
-		
-		-- show a small light if theres items
-        if hasItems then
-            local dlight = DynamicLight(self:EntIndex())
-            if dlight then
-                dlight.pos = self:GetPos() + (self:GetUp() * 25)
-                dlight.r = 255
-                dlight.g = 255
-                dlight.b = 255
-                dlight.brightness = 1.0
-                dlight.Decay = 500
-                dlight.Size = 100
-				-- refresh every frame
-                dlight.DieTime = CurTime() + 0.1
-            end
-        end
+		-- setup where the text appears
+		local pos = self:GetPos() + Vector(0, 0, 20)
+		local ang = Angle(0, LocalPlayer():EyeAngles().y - 90, 90)
+
+		-- show text
+		local name = self:GetPlayerName()
+		if not name or name == "" then
+			name = "Unknown Player"
+		end
+        cam.Start3D2D(pos, Angle(0, ang.y, 90), 0.2)
+            draw.SimpleTextOutlined(name .. "'s Death Cache", "DermaLarge", 0, 0, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
+        cam.End3D2D()
 	end
 end
