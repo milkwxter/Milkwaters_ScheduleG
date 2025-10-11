@@ -23,8 +23,8 @@ ENT.Categories = {
     {name = "Seeds", items = {
         {name = "OG Kush Seed", price = 30, class = "seed_og_kush"},
         {name = "Sour Diesel Seed", price = 60, class = "seed_sour_diesel"},
-        {name = "Green Crack Seed", price = 90, class = "seed_og_kush"},
-        {name = "Granddaddy Purple Seed", price = 120, class = "seed_og_kush"},
+        {name = "Green Crack Seed", price = 90, class = "seed_green_crack"},
+        {name = "Granddaddy Purple Seed", price = 120, class = "seed_granddaddy_purple"},
     }},
 }
 
