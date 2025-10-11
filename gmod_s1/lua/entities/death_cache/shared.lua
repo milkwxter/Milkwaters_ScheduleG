@@ -234,7 +234,8 @@ if CLIENT then
 			name = "Unknown Player"
 		end
         cam.Start3D2D(pos, Angle(0, ang.y, 90), 0.2)
-            draw.SimpleTextOutlined(name .. "'s Death Cache", "DermaLarge", 0, 0, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
+            draw.SimpleTextOutlined(name .. "'s", "DermaLarge", 0, -20, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
+            draw.SimpleTextOutlined("Death Cache", "DermaLarge", 0, 10, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0))
         cam.End3D2D()
 	end
 end

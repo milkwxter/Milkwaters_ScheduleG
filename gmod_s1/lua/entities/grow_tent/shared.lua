@@ -37,6 +37,7 @@ if SERVER then
 		self:SetNWInt("SoilUsesLeft", 0)
 		self:SetNWVector("DirtColor", Vector(255/255, 255/255, 255/255))
         self:SetNWString("PotType", "")
+        self:SetNWInt("MaxGrowth", 100)
 		
 		-- growing weed stats
 		self:SetNWVector("PlantColor", Vector(255/255, 255/255, 255/255))
@@ -49,14 +50,15 @@ if SERVER then
 		if not IsValid(ply) or not ply:IsPlayer() then return end
 		
 		-- my vars
-		local growth    = self:GetNWInt("Growth", 0)
-		local shears    = self:GetNWInt("ShearCount", 0)
-		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
+		local growth = self:GetNWInt("Growth", 0)
+		local shears = self:GetNWInt("ShearCount", 0)
+		local soilUses = self:GetNWInt("SoilUsesLeft", 0)
 		local isGrowing = self:GetNWBool("Growing", false)
 		local seed = self:GetNWBool("PlantName", "")
+		local maxGrowth = self:GetNWInt("MaxGrowth", 0)
 		
 		-- ready for harvest path
-		if growth >= 100 then
+		if growth >= maxGrowth then
 			local wep = ply:GetActiveWeapon()
 			if not IsValid(wep) or (wep:GetClass() ~= "weapon_planttrimmers" and wep:GetClass() ~= "weapon_electrictrimmers") then
 				DarkRP.notify(ply, 1, 4, "You need plant trimmers equipped to shear this plant!")
@@ -81,7 +83,7 @@ if SERVER then
 				util.Effect("weed_boom", effect, true, true)
 
 				if self:GetNWInt("ShearCount") >= 10 then
-					self:ProduceWeed()
+					self:ProduceWeed(8)
 				end
 			end
 			return
@@ -100,11 +102,12 @@ if SERVER then
             local water = self:GetNWInt("Water")
 			local potType = self:GetNWString("PotType")
 			local plantName = self:GetNWString("PlantName")
+            local maxGrowth = self:GetNWInt("MaxGrowth")
 
 			-- if we are allowed to grow
-            if water > 0 and growth < 100 and plantName ~= "" then
+            if water > 0 and growth < maxGrowth and plantName ~= "" then
 				-- increment growth regardless
-                self:SetNWInt("Growth", math.min(growth + 2, 100))
+                self:SetNWInt("Growth", math.min(growth + 1, maxGrowth))
 				
 				-- decrease water based on pot type
 				if potType == "pot_water_retaining" then
@@ -115,7 +118,7 @@ if SERVER then
             end
 			
 			-- stop growing once fully grown
-			if self:GetNWInt("Growth") >= 100 then
+			if self:GetNWInt("Growth") >= maxGrowth then
 				self:SetNWBool("Growing", false)
 			end
         end
@@ -124,22 +127,29 @@ if SERVER then
         return true
     end
 	
-	function ENT:ProduceWeed()
-		local soilUses  = self:GetNWInt("SoilUsesLeft", 0)
-		
+	function ENT:ProduceWeed(amount)
+		amount = tonumber(amount) or 1
+		local soilUses = self:GetNWInt("SoilUsesLeft", 0)
+
 		-- reset vars
 		self:SetNWBool("Growing", false)
 		self:SetNWInt("Growth", 0)
 		self:SetNWInt("ShearCount", 0)
 		self:SetNWInt("SoilUsesLeft", soilUses - 1)
-        self:SetNWString("PlantName", "")
-		
-        local productClass = self:GetNWString("Product", "")
-		local product = ents.Create(productClass)
-		if IsValid(product) then
-			local ang = self:GetAngles()
-			product:SetPos(self:GetPos() + ang:Up() * 50 + ang:Forward() * 40)
-			product:Spawn()
+		self:SetNWString("PlantName", "")
+
+		local productClass = self:GetNWString("Product", "")
+		local basePos = self:GetPos()
+		local ang = self:GetAngles()
+
+		for i = 1, amount do
+			local product = ents.Create(productClass)
+			if IsValid(product) then
+				-- stagger each spawn slightly to avoid overlap
+				local offset = (ang:Forward() * 30) + (ang:Up() * (40 + i * 10))
+				product:SetPos(basePos + offset)
+				product:Spawn()
+			end
 		end
 	end
 end
@@ -200,6 +210,10 @@ if CLIENT then
 		local shears = self:GetNWInt("ShearCount", 0)
 		local soil = self:GetNWInt("SoilUsesLeft", 0)
 		local plantName = self:GetNWString("PlantName", "")
+        local maxGrowth = self:GetNWInt("MaxGrowth", 0)
+		
+		-- complex stats
+		local growthPercent = (100 / maxGrowth) * growth
 		
 		-- plant color
 		local plantColorVec = self:GetNWVector("PlantColor", Vector(255/255, 255/255, 255/255))
@@ -225,7 +239,7 @@ if CLIENT then
 			draw.SimpleTextOutlined(headline, "DermaLarge", 0, headlineY, headlineColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			draw.SimpleTextOutlined("Plant: " .. plantName, "DermaDefaultBold", 0, -10, plantColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 		else
-			if growth >= 100 then
+			if growth >= maxGrowth then
 				draw.SimpleTextOutlined("Press E to Shear!", "DermaLarge", 0, -20, Color(255, 255, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 				draw.SimpleTextOutlined("Shears left: " .. shears .. "/10", "DermaDefaultBold", 0, 0, Color(0, 150, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0,0,0))
 			else
@@ -245,11 +259,11 @@ if CLIENT then
 		cam.End3D2D()
 		
 		-- draw a fun little plant model
-        if IsValid(self.PlantModel) and growth > 0 then
+        if IsValid(self.PlantModel) and growthPercent > 0 then
             local plantPos = self.DirtModel:GetPos()
             local plantAng = self.DirtModel:GetAngles()
 			
-            local scale = Lerp(growth / 100, 0.1, 0.8)
+            local scale = Lerp(growthPercent / 100, 0.1, 0.8)
 
             local mat = Matrix()
             mat:Scale(Vector(scale, scale, scale))
@@ -333,9 +347,7 @@ if CLIENT then
 			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
 
 			-- text overlay
-			draw.SimpleText(water .. "%", "DermaDefaultBold",
-				0, barOffsetY, color_white,
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			draw.SimpleText(water .. "%", "DermaDefaultBold", 0, barOffsetY, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		cam.End3D2D()
 		
 		-- draw a soil bar
@@ -360,9 +372,7 @@ if CLIENT then
 			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
 
 			-- text overlay
-			draw.SimpleText("Uses left: " .. soil, "DermaDefaultBold",
-				0, barOffsetY, color_white,
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			draw.SimpleText("Uses left: " .. soil, "DermaDefaultBold", 0, barOffsetY, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		cam.End3D2D()
 		
 		-- draw a growth bar
@@ -373,7 +383,7 @@ if CLIENT then
 			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, barLength, barHeight)
 
 			-- fill
-			local fillWidth = math.Clamp(growth, 0, 100) / 100 * barLength
+			local fillWidth = math.Clamp(growth, 0, maxGrowth) / maxGrowth * barLength
 			surface.SetDrawColor(plantColor)
 			surface.DrawRect(-barLength/2, barOffsetY - barHeight/2, fillWidth, barHeight)
 
@@ -387,9 +397,7 @@ if CLIENT then
 			surface.DrawTexturedRect(-barLength/2 - 20, barOffsetY - barHeight/2 + 2, 16, 16)
 
 			-- text overlay
-			draw.SimpleText(growth .. "%", "DermaDefaultBold",
-				0, barOffsetY, color_white,
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			draw.SimpleText(math.Round(growthPercent, 2) .. "%", "DermaDefaultBold", 0, barOffsetY, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		cam.End3D2D()
 	end
 	

@@ -49,6 +49,7 @@ if SERVER then
 			hitEnt:SetNWVector("PlantColor", self.PlantColor:ToVector())
 			hitEnt:SetNWString("Product", self.ProductClass)
 			hitEnt:SetNWString("PlantName", self.SeedName)
+			hitEnt:SetNWInt("MaxGrowth", self.GrowthTime)
 			
 			-- effects
 			hitEnt:EmitSound("physics/plaster/drywall_impact_hard1.wav")
